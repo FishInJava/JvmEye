@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: never
+  servlet:
+    session:
+      timeout: 12h
+
+spring:
+  application:
+    name: jvme-eye
+  mvc:
+    static-path-pattern: /**
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-durations-as-timestamps: false
+
+# JvmEye 自有配置
+jvmeeye:
+  user:
+    username: admin
+    # 明文密码,启动时自动 BCrypt 编码;也可写成 "{bcrypt}$2a$10$..." 直接使用哈希
+    password: admin123
+  monitor:
+    # 采样间隔(毫秒)
+    sample-interval-ms: 1000
+    # 每目标历史缓冲点数(600 点 * 1s = 10 分钟)
+    history-size: 600
+    # 发现列表是否排除 JvmEye 自身进程
+    exclude-self: true
+    # 是否允许多目标并发连接(false = 单目标,连接新目标时释放旧连接)
+    multi-target: false
+
+logging:
+  level:
+    root: info
+    com.jvmeeye: info
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
