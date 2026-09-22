@@ -14,6 +14,8 @@ import java.util.List;
 
 /**
  * 本机 JVM 发现。
+ *
+ * <p>响应体是 {@link com.jvmeeye.controller.dto.TargetsResponse} record,统一用 {@link ResponseEntity} 包装;</p>
  */
 @RestController
 @RequestMapping("/api/targets")
