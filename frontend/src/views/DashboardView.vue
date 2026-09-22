@@ -98,14 +98,27 @@ import ThreadDumpPanel from '../components/ThreadDumpPanel.vue'
 import HistogramPanel from '../components/HistogramPanel.vue'
 import { errorMessage, metricsApi, monitorApi, targetsApi } from '../api'
 import { formatTime } from '../utils/format'
+import { usePolling } from '../composables/usePolling'
 
-const HISTORY_POINTS = 300
+/** 实时指标轮询周期(ms)。 */
 const CURRENT_INTERVAL = 2000
+/** 历史序列轮询周期(ms)。实时值 2s 一次,折线图 6s 拉一次就够。 */
 const HISTORY_INTERVAL = 6000
+/** 每次请求的历史点数,与后端缓冲容量一致。 */
+const HISTORY_POINTS = 300
+
+/** 没有连接目标时的状态占位;连上 / 断开都以它为基准,避免两处写法不一致。 */
+const IDLE_STATUS = { connected: false, pid: null, displayName: null, bufferedPoints: 0, connectedAt: null }
 
 const router = useRouter()
 
-const status = ref({ connected: false, pid: null, displayName: null, bufferedPoints: 0, connectedAt: null })
+// 两个轮询任务:实时指标 2s、历史序列 6s
+const { start: startPolling, stop: stopPolling } = usePolling([
+  { intervalMs: CURRENT_INTERVAL, run: loadCurrent },
+  { intervalMs: HISTORY_INTERVAL, run: loadHistory }
+])
+
+const status = ref({ ...IDLE_STATUS })
 const targets = ref([])
 const targetsLoading = ref(false)
 const connectingPid = ref(null)
@@ -115,9 +128,6 @@ const historyPoints = ref([])
 const lastUpdated = ref(null)
 const error = ref('')
 const refreshing = ref(false)
-
-let currentTimer = null
-let historyTimer = null
 
 const intervalLabel = computed(() => `${CURRENT_INTERVAL / 1000}s`)
 
@@ -168,22 +178,10 @@ async function loadHistory() {
   }
 }
 
-function startPolling() {
-  stopPolling()
-  currentTimer = window.setInterval(loadCurrent, CURRENT_INTERVAL)
-  historyTimer = window.setInterval(loadHistory, HISTORY_INTERVAL)
-}
-
-function stopPolling() {
-  if (currentTimer) window.clearInterval(currentTimer)
-  if (historyTimer) window.clearInterval(historyTimer)
-  currentTimer = null
-  historyTimer = null
-}
-
+/** 目标断开了(进程退出 / 连接被关闭):回到选择目标界面。 */
 function handleTargetLost(message) {
   stopPolling()
-  status.value = { connected: false, pid: null, displayName: null, bufferedPoints: 0, connectedAt: null }
+  status.value = { ...IDLE_STATUS }
   current.value = null
   historyPoints.value = []
   error.value = message
@@ -305,13 +303,13 @@ defineOptions({ name: 'DashboardView' })
 
 .status-dot-live {
   background: var(--success);
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 4px var(--ok-bg);
   animation: pulse 2s ease-in-out infinite;
 }
 
 .status-dot-off {
-  background: #64748b;
-  box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.15);
+  background: var(--text-faint);
+  box-shadow: 0 0 0 4px var(--muted-bg);
 }
 
 @keyframes pulse {
@@ -376,7 +374,7 @@ defineOptions({ name: 'DashboardView' })
 
 .chart-panel :deep(.chart) {
   width: 100%;
-  height: 260px;
+  height: var(--chart-height);
 }
 
 .diagnostics-grid {

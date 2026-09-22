@@ -4,7 +4,17 @@
 
 <script setup>
 import { watch } from 'vue'
-import { useEChart, baseGrid, baseTooltip, axisStyle } from '../composables/useEChart'
+import {
+  axisNameStyle,
+  axisStyle,
+  baseGrid,
+  baseLegend,
+  baseTooltip,
+  chartColors,
+  lineSeries,
+  timeAxis,
+  useEChart
+} from '../composables/useEChart'
 import { formatTime } from '../utils/format'
 
 const props = defineProps({
@@ -13,23 +23,25 @@ const props = defineProps({
 
 const { el, update } = useEChart((data) => {
   const points = data.points || []
-  const times = points.map((p) => formatTime(p.timestamp))
-  const deadlocked = points.map((p) => (p.thread.deadlocked ? p.thread.live : null))
+  // 死锁时刻打点:y 值取当时的活跃线程数,只是为了把标记放到合适的高度
+  const deadlockMarks = points.map((p) => (p.thread.deadlocked ? p.thread.live : null))
   return {
     grid: baseGrid,
     tooltip: baseTooltip,
-    legend: { top: 4, textStyle: { color: '#94a3b8', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
-    xAxis: { type: 'category', data: times, boundaryGap: false, ...axisStyle },
+    legend: baseLegend,
+    xAxis: timeAxis(points.map((p) => formatTime(p.timestamp))),
     yAxis: { type: 'value', minInterval: 1, ...axisStyle },
     series: [
-      { name: '活跃线程', type: 'line', smooth: true, showSymbol: false,
-        data: points.map((p) => p.thread.live), lineStyle: { width: 2 }, areaStyle: { opacity: 0.2 } },
-      { name: '守护线程', type: 'line', smooth: true, showSymbol: false,
-        data: points.map((p) => p.thread.daemon), lineStyle: { width: 1.5 } },
-      { name: '峰值线程', type: 'line', smooth: true, showSymbol: false,
-        data: points.map((p) => p.thread.peak), lineStyle: { width: 1.5, type: 'dashed' } },
-      { name: '死锁标记', type: 'scatter', symbolSize: 9, itemStyle: { color: '#ef4444' },
-        data: deadlocked }
+      lineSeries('活跃线程', points.map((p) => p.thread.live), { area: 0.2 }),
+      lineSeries('守护线程', points.map((p) => p.thread.daemon), { width: 1.5 }),
+      lineSeries('峰值线程', points.map((p) => p.thread.peak), { width: 1.5, dash: 'dashed' }),
+      {
+        name: '死锁标记',
+        type: 'scatter',
+        symbolSize: 9,
+        itemStyle: { color: chartColors.danger },
+        data: deadlockMarks
+      }
     ]
   }
 })

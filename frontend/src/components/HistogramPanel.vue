@@ -1,14 +1,14 @@
 <template>
   <div class="histogram">
-    <div class="hist-toolbar">
+    <div class="toolbar">
       <button class="btn btn-primary" :disabled="loading" @click="load">
         <span v-if="loading" class="spinner"></span>
         {{ loading ? '采集中…' : '获取类直方图' }}
       </button>
-      <select v-model.number="top" class="top-select" :disabled="loading">
+      <select v-model.number="top" class="form-control top-select" :disabled="loading">
         <option v-for="option in topOptions" :key="option" :value="option">Top {{ option }}</option>
       </select>
-      <span v-if="histogram" class="dim toolbar-info">
+      <span v-if="histogram" class="toolbar-info">
         {{ histogram.totalClasses }} 个类 · 共 {{ formatBytes(histogram.totalBytes) }} / {{ formatNumber(histogram.totalInstances) }} 实例
       </span>
     </div>
@@ -21,7 +21,7 @@
 
     <div v-if="!histogram && !loading" class="empty">点击“获取类直方图”查看目标 JVM 的对象分布</div>
 
-    <div v-else-if="histogram" class="hist-body">
+    <div v-else-if="histogram" class="scroll-box">
       <div class="bar-head">
         <span>Top {{ histogram.entries.length }} · 按占用字节降序</span>
         <span class="dim">{{ formatTime(histogram.timestamp) }}</span>
@@ -29,22 +29,23 @@
       <table class="table">
         <thead>
           <tr>
-            <th style="width: 46px">#</th>
+            <th class="col-rank">#</th>
             <th>类名(模块)</th>
-            <th style="width: 100px">实例数</th>
-            <th style="width: 110px">占用</th>
-            <th style="width: 120px">占比</th>
+            <th class="col-count">实例数</th>
+            <th class="col-bytes">占用</th>
+            <th class="col-share">占比</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="entry in histogram.entries" :key="entry.rank">
             <td class="dim mono">{{ entry.rank }}</td>
-            <td class="cell-name" :title="entry.name">{{ entry.name }}</td>
+            <td class="cell-name cell-ellipsis" :title="entry.name">{{ entry.name }}</td>
             <td class="mono">{{ formatNumber(entry.instances) }}</td>
             <td class="mono">{{ formatBytes(entry.bytes) }}</td>
             <td>
               <div class="share">
-                <div class="share-bar"><span :style="{ width: shareWidth(entry.bytes) }"></span></div>
+                <!-- 过渡条复用全局 .progress,只换颜色和粗细 -->
+                <div class="progress share-bar"><span :style="{ width: shareWidth(entry.bytes) }"></span></div>
                 <span class="share-text">{{ shareText(entry.bytes) }}</span>
               </div>
             </td>
@@ -60,8 +61,14 @@ import { ref } from 'vue'
 import { diagnosticsApi, errorMessage } from '../api'
 import { formatBytes, formatNumber, formatTime } from '../utils/format'
 
+/** 可选返回条数。 */
 const topOptions = [20, 30, 50, 100]
-const top = ref(30)
+const DEFAULT_TOP = 30
+
+/** 占用比条的最小可见宽度:否则小占比的类看起来像是 0。 */
+const MIN_BAR_PERCENT = 2
+
+const top = ref(DEFAULT_TOP)
 const histogram = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -78,15 +85,19 @@ async function load() {
   }
 }
 
+/** 该类字节数占总字节数的比例。 */
 function shareText(bytes) {
-  if (!histogram.value || !histogram.value.totalBytes) return '-'
-  return `${((bytes / histogram.value.totalBytes) * 100).toFixed(2)}%`
+  const total = histogram.value?.totalBytes
+  if (!total) return '-'
+  return `${((bytes / total) * 100).toFixed(2)}%`
 }
 
+/** 占用比条宽度:以当前最大类为 100%,并保证至少有 MIN_BAR_PERCENT 可见。 */
 function shareWidth(bytes) {
-  if (!histogram.value || !histogram.value.totalBytes) return '0%'
-  const max = Math.max(...histogram.value.entries.map((e) => e.bytes), 1)
-  return `${Math.max(2, (bytes / max) * 100).toFixed(1)}%`
+  const entries = histogram.value?.entries
+  if (!entries?.length) return '0%'
+  const max = Math.max(...entries.map((entry) => entry.bytes), 1)
+  return `${Math.max(MIN_BAR_PERCENT, (bytes / max) * 100).toFixed(1)}%`
 }
 </script>
 
@@ -98,24 +109,9 @@ function shareWidth(bytes) {
   min-width: 0;
 }
 
-.hist-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
+/* 下拉框在工具条里不该被拉伸 */
 .top-select {
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 13px;
-}
-
-.toolbar-info {
-  font-size: 12px;
+  width: auto;
 }
 
 .hist-warning {
@@ -123,13 +119,7 @@ function shareWidth(bytes) {
   font-size: 12px;
 }
 
-.hist-body {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  max-height: 420px;
-  overflow: auto;
-}
-
+/* 表头悬浮:结果区内部滚动,横向标题留底 */
 .bar-head {
   display: flex;
   justify-content: space-between;
@@ -146,9 +136,6 @@ function shareWidth(bytes) {
 
 .cell-name {
   max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-family: var(--mono);
   font-size: 11px;
 }
@@ -159,18 +146,11 @@ function shareWidth(bytes) {
   gap: 6px;
 }
 
+/* 蓝→紫,跟内存占用条(蓝→绿)区分开 */
 .share-bar {
+  --progress-end: var(--accent-grad-end);
+  --progress-height: 5px;
   flex: 1;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.16);
-  overflow: hidden;
-}
-
-.share-bar span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #4c8dff, #a855f7);
 }
 
 .share-text {

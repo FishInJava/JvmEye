@@ -4,7 +4,7 @@
 
 <script setup>
 import { watch } from 'vue'
-import { useEChart, baseGrid, baseTooltip, axisStyle } from '../composables/useEChart'
+import { lineSeries, timeAxis, useEChart, baseGrid, baseLegend, baseTooltip, axisStyle } from '../composables/useEChart'
 import { formatBytes, formatTime } from '../utils/format'
 
 const props = defineProps({
@@ -13,24 +13,23 @@ const props = defineProps({
 
 const { el, update } = useEChart((data) => {
   const points = data.points || []
-  const times = points.map((p) => formatTime(p.timestamp))
-  const series = [
-    { name: '堆 used', type: 'line', smooth: true, showSymbol: false, data: points.map((p) => p.memory.heapUsed),
-      lineStyle: { width: 2 }, areaStyle: { opacity: 0.25 } },
-    { name: '堆 committed', type: 'line', smooth: true, showSymbol: false, data: points.map((p) => p.memory.heapCommitted),
-      lineStyle: { width: 1.5, type: 'dashed' } },
-    { name: '堆 max', type: 'line', smooth: true, showSymbol: false, data: points.map((p) => p.memory.heapMax),
-      lineStyle: { width: 1, type: 'dotted' } },
-    { name: '非堆 used', type: 'line', smooth: true, showSymbol: false, data: points.map((p) => p.memory.nonHeapUsed),
-      lineStyle: { width: 1.5 } }
-  ]
   return {
     grid: baseGrid,
     tooltip: { ...baseTooltip, valueFormatter: (v) => formatBytes(v) },
-    legend: { top: 4, textStyle: { color: '#94a3b8', fontSize: 11 }, itemWidth: 14, itemHeight: 8 },
-    xAxis: { type: 'category', data: times, boundaryGap: false, ...axisStyle },
-    yAxis: { type: 'value', ...axisStyle, axisLabel: { ...axisStyle.axisLabel, formatter: (v) => formatBytes(v, 0) } },
-    series
+    legend: baseLegend,
+    xAxis: timeAxis(points.map((p) => formatTime(p.timestamp))),
+    yAxis: {
+      type: 'value',
+      ...axisStyle,
+      // 坐标轴刻度是字节数,取 0 位小数
+      axisLabel: { ...axisStyle.axisLabel, formatter: (v) => formatBytes(v, 0) }
+    },
+    series: [
+      lineSeries('堆 used', points.map((p) => p.memory.heapUsed), { area: 0.25 }),
+      lineSeries('堆 committed', points.map((p) => p.memory.heapCommitted), { width: 1.5, dash: 'dashed' }),
+      lineSeries('堆 max', points.map((p) => p.memory.heapMax), { width: 1, dash: 'dotted' }),
+      lineSeries('非堆 used', points.map((p) => p.memory.nonHeapUsed), { width: 1.5 })
+    ]
   }
 })
 

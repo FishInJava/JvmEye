@@ -32,31 +32,54 @@ api.interceptors.response.use(
   }
 )
 
-/** 提取后端错误信息。 */
+/**
+ * 只取响应体。
+ *
+ * 后端返回的是扁平 JSON(没有 code/msg/data 外层信封),所有接口都通过这里解包,
+ * 将来若要改成统一信封,只改这一处。
+ */
+const payload = (response) => response.data
+
+/**
+ * 提取后端错误信息。
+ *
+ * 后端错误体是 RFC 7807 ProblemDetail,错误原因在 `detail` 字段;
+ * 同时兼容旧字段 `message`,避免后端回滚时前端提示失效。
+ */
 export function errorMessage(error, fallback = '请求失败') {
-  return error?.response?.data?.message || error?.message || fallback
+  const data = error?.response?.data
+  return data?.detail || data?.message || error?.message || fallback
 }
 
 export const targetsApi = {
+  /** 列出本机 JVM。 @returns {Promise<Array>} 目标进程列表 */
   list: (includeSelf = false) =>
-    api.get('/targets', { params: { includeSelf } }).then((r) => r.data.targets || [])
+    payload(api.get('/targets', { params: { includeSelf } })).then((data) => data.targets || [])
 }
 
 export const monitorApi = {
-  connect: (pid) => api.post(`/targets/${pid}/connect`).then((r) => r.data),
-  disconnect: (pid) => api.delete(`/targets/${pid}/disconnect`).then((r) => r.data),
-  disconnectAll: () => api.delete('/targets/disconnect').then((r) => r.data),
-  status: () => api.get('/monitor/status').then((r) => r.data)
+  /** 连接指定 pid。 @returns {Promise<{connected: boolean, pid: number, displayName: string, connectedAt: number}>} */
+  connect: (pid) => payload(api.post(`/targets/${pid}/connect`)),
+  /** 断开指定 pid。 @returns {Promise<{connected: boolean, pid: number, closed: number}>} */
+  disconnect: (pid) => payload(api.delete(`/targets/${pid}/disconnect`)),
+  /** 断开全部。 @returns {Promise<{connected: boolean, closed: number}>} */
+  disconnectAll: () => payload(api.delete('/targets/disconnect')),
+  /** 当前连接状态。 @returns {Promise<{connected: boolean, pid: number, displayName: string, bufferedPoints: number, connectedAt: number, closeReason: string|null}>} */
+  status: () => payload(api.get('/monitor/status'))
 }
 
 export const metricsApi = {
-  current: () => api.get('/metrics/current').then((r) => r.data),
-  history: (points = 300) => api.get('/metrics/history', { params: { points } }).then((r) => r.data)
+  /** 实时指标快照。 @returns {Promise<object>} 结构见 docs/API.md */
+  current: () => payload(api.get('/metrics/current')),
+  /** 最近 points 点历史。 @returns {Promise<{points: Array<object>}>} */
+  history: (points = 300) => payload(api.get('/metrics/history', { params: { points } }))
 }
 
 export const diagnosticsApi = {
-  threadDump: () => api.get('/diagnostics/thread-dump').then((r) => r.data),
-  histogram: (top = 30) => api.get('/diagnostics/histogram', { params: { top } }).then((r) => r.data)
+  /** 完整线程 Dump。 @returns {Promise<{threads: Array<object>, deadlockedCount: number}>} */
+  threadDump: () => payload(api.get('/diagnostics/thread-dump')),
+  /** 类直方图(会触发目标 Full GC)。 @returns {Promise<{entries: Array<object>, totalBytes: number}>} */
+  histogram: (top = 30) => payload(api.get('/diagnostics/histogram', { params: { top } }))
 }
 
 export default api

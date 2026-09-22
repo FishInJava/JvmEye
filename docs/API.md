@@ -5,11 +5,21 @@ Base URL: `http://localhost:8080`
 所有 `/api/**` 需要登录(基于 Session Cookie,`JSESSIONID`)。
 未登录访问 `/api/**` 返回 `302` 跳转 `/login`;前端应统一处理 `401/302` → 跳登录页。
 
-错误响应统一结构:
+错误响应统一结构(RFC 7807 `ProblemDetail`,由 Spring `org.springframework.http.ProblemDetail` 生成):
 
 ```json
-{ "timestamp": 1727000000000, "status": 409, "error": "Conflict", "message": "当前没有已连接的监控目标...", "path": "/api/metrics/current" }
+{ "type": "about:blank", "title": "Conflict", "status": 409, "detail": "当前没有已连接的监控目标...", "instance": "/api/metrics/current", "timestamp": 1727000000000 }
 ```
+
+| 字段 | 来源 | 说明 |
+|---|---|---|
+| `title` | Spring | HTTP 状态描述,如 `Conflict` / `Not Found` |
+| `status` | Spring | HTTP 状态码 |
+| `detail` | 后端 | 错误原因(对应旧字段 `message`) |
+| `instance` | 后端 | 触发错误的请求路径(对应旧字段 `path`) |
+| `timestamp` | 后端 | 错误发生时间(epoch 毫秒),额外补充字段 |
+
+> 成功响应均为扁平 JSON,字段即后端 record 的组件名;Controller 不使用 `Map` 拼装,字段含义以本文档与 `com.jvmeeye.controller.dto` 下的 record 定义为准。
 
 ---
 

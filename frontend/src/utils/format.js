@@ -41,6 +41,12 @@ export function formatNumber(value) {
   return value.toLocaleString('zh-CN')
 }
 
+/** 固定小数位,如 LoadAverage;-1 等无效值返回 '-'。 */
+export function formatDecimal(value, digits = 2) {
+  if (value === null || value === undefined || value < 0) return '-'
+  return value.toFixed(digits)
+}
+
 export function formatTime(timestamp) {
   if (!timestamp) return '-'
   const date = new Date(timestamp)

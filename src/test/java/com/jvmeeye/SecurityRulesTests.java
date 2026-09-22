@@ -45,6 +45,9 @@ class SecurityRulesTests {
         mockMvc.perform(get("/api/metrics/current").with(user("admin").roles("USER")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.message").exists());
+                // RFC 7807:title 为状态描述,detail 为错误原因
+                .andExpect(jsonPath("$.title").value("Conflict"))
+                .andExpect(jsonPath("$.detail").exists())
+                .andExpect(jsonPath("$.instance").value("/api/metrics/current"));
     }
 }

@@ -37,7 +37,7 @@
   gap: 32px;
   padding: 0 24px;
   height: 56px;
-  background: rgba(15, 20, 32, 0.85);
+  background: var(--topbar-bg);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
   position: sticky;
@@ -74,7 +74,7 @@
 
 .nav-link {
   padding: 6px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--text-dim);
   text-decoration: none;
@@ -84,7 +84,7 @@
 .nav-link:hover,
 .nav-link.router-link-active {
   color: var(--text);
-  background: rgba(76, 141, 255, 0.12);
+  background: var(--accent-weak);
 }
 
 .app-main {

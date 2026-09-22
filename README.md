@@ -124,13 +124,17 @@ JvmEye/
 ├── review.md                         # 验收报告
 ├── README.md                         # 项目说明
 ├── docs/
-│   └── API.md                        # API 文档
+│   ├── API.md                        # API 文档
+│   └── FRONTEND.md                   # 代码可读性约定(JS/CSS 怎么写)
 ├── frontend/                         # Vue 3 + Vite 前端
 │   ├── src/
 │   │   ├── views/                    # 页面：LoginView、DashboardView
-│   │   ├── components/               # 组件：图表、目标选择器、诊断面板
-│   │   ├── api.js                    # axios 实例
+│   │   ├── components/               # 组件：图表、目标选择器、诊断面板、指标卡
+│   │   ├── composables/              # 复用逻辑：useEChart、usePolling
+│   │   ├── utils/format.js           # 字节 / 时长 / 百分比格式化
+│   │   ├── api.js                    # axios 实例 + 按模块封装的接口
 │   │   ├── router.js                 # 路由
+│   │   ├── styles.css                # 全局样式(设计变量 + 通用组件)
 │   │   └── main.js                   # 入口
 │   ├── package.json
 │   └── vite.config.js                # proxy /api → http://localhost:8080
@@ -140,6 +144,7 @@ JvmEye/
 │   ├── JvmEyeApplication.java        # 启动类
 │   ├── config/                       # Security、Properties、UserConfig
 │   ├── controller/                   # REST 控制器
+│   │   ├── dto/                      # 接口响应 record(禁止用 Map 拼 JSON)
 │   ├── discovery/                    # JVM 发现（Attach API）
 │   ├── monitor/                      # JMX 连接、指标采样与查询
 │   ├── diagnostics/                  # 线程 Dump、类直方图

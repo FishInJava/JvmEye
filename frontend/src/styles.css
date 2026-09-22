@@ -1,18 +1,83 @@
+/* =============================================================================
+ * JvmEye 全局样式
+ *
+ * 只有"跨组件复用"的样式才放在这里;组件私有的放各 .vue 的 <style scoped>。
+ * 目录:
+ *   1. 设计变量(tokens)
+ *   2. 基础 reset
+ *   3. 文本工具类
+ *   4. 按钮
+ *   5. 面板
+ *   6. 表格与列宽
+ *   7. 状态色三件套(徽标 / chip)
+ *   8. 表单控件
+ *   9. 工具条
+ *   10. 提示条 / 空态 / 加载
+ *   11. 滚动容器与滚动条
+ * ============================================================================= */
+
+/* --- 1. 设计变量 ---------------------------------------------------------- */
+
 :root {
+  /* 背景与容器 */
   --bg: #0b0f18;
-  --bg-soft: #111725;
   --panel: #151c2c;
   --panel-hover: #1a2336;
+  --panel-sunken: rgba(11, 15, 24, 0.55); /* 表格展开行等"下沉"区域底色 */
+  --input-bg: rgba(11, 15, 24, 0.7); /* 输入框底色 */
+  --topbar-bg: rgba(15, 20, 32, 0.85);
   --border: rgba(148, 163, 184, 0.16);
+  --border-soft: rgba(148, 163, 184, 0.08); /* 表格分隔线等弱描边 */
+
+  /* 文字 */
   --text: #e6ebf5;
   --text-dim: #94a3b8;
-  --accent: #4c8dff;
-  --accent-soft: rgba(76, 141, 255, 0.14);
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --text-faint: #64748b; /* 堆栈行号这类"更弱一级"的文字 */
   --mono: 'SFMono-Regular', 'JetBrains Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* 主色 */
+  --accent: #4c8dff;
+  --accent-weak: rgba(76, 141, 255, 0.12); /* 大面积淡色底(hover / 选中) */
+  --accent-strong: rgba(76, 141, 255, 0.45); /* hover 描边 */
+  --accent-hover: #2f6fe0; /* 主按钮渐变下终点 */
+  --accent-grad-end: #a855f7; /* 进度条渐变终点(紫) */
+  --success: #22c55e; /* 健康态:已连接、内存进度条渐变终点 */
+
+  /* 语义色:每个状态 = 文字色 / 底色 / 描边 三件套,徽标、chip、状态列共用 */
+  --ok-text: #86efac;
+  --ok-bg: rgba(34, 197, 94, 0.14);
+  --ok-line: rgba(34, 197, 94, 0.3);
+
+  --warn-text: #fcd34d;
+  --warn-bg: rgba(245, 158, 11, 0.14);
+  --warn-line: rgba(245, 158, 11, 0.3);
+
+  --danger-text: #fca5a5;
+  --danger-text-strong: #fecaca;
+  --danger-bg: rgba(239, 68, 68, 0.16);
+  --danger-line: rgba(239, 68, 68, 0.35);
+  --danger-wash: rgba(239, 68, 68, 0.12); /* 大面积淡色底(错误提示条) */
+  --info-text: #bfdbfe;
+  --info-bg: rgba(76, 141, 255, 0.12);
+  --info-line: rgba(76, 141, 255, 0.3);
+
+  --muted-text: #94a3b8;
+  --muted-bg: rgba(148, 163, 184, 0.12);
+  --muted-line: rgba(148, 163, 184, 0.2);
+
+  --track: rgba(148, 163, 184, 0.16); /* 进度条 / 占比条的底槽 */
+  --code-text: #cbd5f5; /* 堆栈里的类名 */
+
+  /* 尺寸与形状 */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --scroll-box-max-height: 420px; /* 诊断结果区内部滚动高度 */
+  --stack-max-height: 260px; /* 单个线程的堆栈列表滚动高度 */
 }
+
+/* --- 2. 基础 reset -------------------------------------------------------- */
 
 * {
   box-sizing: border-box;
@@ -43,14 +108,35 @@ a {
   color: var(--accent);
 }
 
-/* 通用按钮 */
+/* --- 3. 文本工具类 -------------------------------------------------------- */
+
+/* 等宽:数字、pid、类名、时间戳,避免宽度跳动 */
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* 次要文字 */
+.dim {
+  color: var(--text-dim);
+}
+
+/* 单元格文本省略:超出列宽显示 ...,配合 max-width 使用 */
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- 4. 按钮 -------------------------------------------------------------- */
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 7px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
@@ -62,7 +148,7 @@ a {
 
 .btn:hover:not(:disabled) {
   background: var(--panel-hover);
-  border-color: rgba(76, 141, 255, 0.45);
+  border-color: var(--accent-strong);
 }
 
 .btn:disabled {
@@ -71,23 +157,23 @@ a {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #4c8dff, #2f6fe0);
+  background: linear-gradient(180deg, var(--accent), var(--accent-hover));
   border-color: transparent;
   font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #5f99ff, #3b78ea);
+  background: linear-gradient(180deg, #5f99ff, var(--accent-hover));
 }
 
 .btn-danger {
-  color: #fecaca;
-  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--danger-text-strong);
+  border-color: var(--danger-line);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.6);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
 }
 
 .btn-sm {
@@ -95,14 +181,16 @@ a {
   font-size: 12px;
 }
 
-/* 通用面板 */
+/* --- 5. 面板 -------------------------------------------------------------- */
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
 }
 
+/* 面板标题:右侧 .hint 放补充说明 */
 .panel-title {
   display: flex;
   align-items: center;
@@ -119,7 +207,8 @@ a {
   color: var(--text-dim);
 }
 
-/* 表格 */
+/* --- 6. 表格与列宽 -------------------------------------------------------- */
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -138,83 +227,159 @@ a {
 
 .table td {
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  border-bottom: 1px solid var(--border-soft);
   vertical-align: top;
 }
 
 .table tbody tr:hover {
-  background: rgba(76, 141, 255, 0.06);
+  background: var(--accent-weak);
 }
 
-.mono {
-  font-family: var(--mono);
-  font-size: 12px;
-}
+/*
+ * 列宽统一定义在这里,模板里不要再写 style="width: 46px"。
+ * 命名 = col-<这一列放什么>;两列宽度相同但语义不同时也各自保留,
+ * 这样读模板就能知道某列有多宽。
+ */
+.col-rank { width: 46px; } /* 序号 */
+.col-id { width: 64px; } /* 线程 ID */
+.col-flag { width: 60px; } /* 是/否 */
+.col-count { width: 76px; } /* 次数统计 */
+.col-action { width: 90px; } /* 操作按钮 */
+.col-state { width: 110px; } /* 状态徽标 */
+.col-bytes { width: 110px; } /* 字节数 */
+.col-share { width: 120px; } /* 占比 */
+.col-toggle { width: 40px; } /* 展开箭头 */
 
-.dim {
-  color: var(--text-dim);
-}
+/* --- 7. 状态色三件套 ------------------------------------------------------ */
 
-/* 徽标 */
+/* 小圆角徽标:已连接 / 死锁 / 空闲 */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   line-height: 18px;
   border: 1px solid transparent;
 }
 
-.badge-ok {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.14);
-  border-color: rgba(34, 197, 94, 0.3);
+/* 胶囊 chip:线程状态,比徽标更小更紧凑 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  border: 1px solid transparent;
 }
 
-.badge-warn {
-  color: #fcd34d;
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.3);
+/* 四种状态:ok / warn / danger / muted,徽标与 chip 共用一套变量 */
+.badge-ok,
+.chip-ok {
+  color: var(--ok-text);
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
 }
 
-.badge-danger {
-  color: #fca5a5;
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.35);
+.badge-warn,
+.chip-warn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
 }
 
-.badge-muted {
+.badge-danger,
+.chip-danger {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+}
+
+.badge-muted,
+.chip-muted {
+  color: var(--muted-text);
+  background: var(--muted-bg);
+  border-color: var(--muted-line);
+}
+
+/* --- 8. 表单控件 ---------------------------------------------------------- */
+
+/* 表单控件:输入框 / 下拉框共用外观 */
+.form-control {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.form-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 通用复选框标签 */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
   color: var(--text-dim);
-  background: rgba(148, 163, 184, 0.12);
-  border-color: rgba(148, 163, 184, 0.2);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-/* 提示条 */
+/* --- 9. 工具条 ------------------------------------------------------------ */
+
+/* 面板顶部的一排操作(按钮 + 输入 + 说明文字) */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* 工具条右侧的统计说明,如"30 个线程 · 死锁 0" */
+.toolbar-info {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* --- 10. 提示条 / 空态 / 加载 --------------------------------------------- */
+
 .alert {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 13px;
   border: 1px solid transparent;
 }
 
 .alert-error {
-  color: #fecaca;
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--danger-text-strong);
+  background: var(--danger-wash);
+  border-color: var(--danger-line);
 }
 
 .alert-info {
-  color: #bfdbfe;
-  background: rgba(76, 141, 255, 0.12);
-  border-color: rgba(76, 141, 255, 0.3);
+  color: var(--info-text);
+  background: var(--info-bg);
+  border-color: var(--info-line);
 }
 
-/* 空态 */
 .empty {
   padding: 32px 16px;
   text-align: center;
@@ -222,7 +387,6 @@ a {
   font-size: 13px;
 }
 
-/* 加载 */
 .spinner {
   width: 14px;
   height: 14px;
@@ -239,7 +403,35 @@ a {
   }
 }
 
-/* 滚动条 */
+/* 细进度条:内存占用(蓝→绿)。
+ * 通过 --progress-end / --progress-height 可换渐变终点和粗细。 */
+.progress {
+  --progress-end: var(--success);
+  --progress-height: 6px;
+  height: var(--progress-height);
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--accent), var(--progress-end));
+  transition: width 0.4s ease;
+}
+
+/* --- 11. 滚动容器与滚动条 ------------------------------------------------- */
+
+/* 结果区限高内滚,避免撑爆面板 */
+.scroll-box {
+  max-height: var(--scroll-box-max-height);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

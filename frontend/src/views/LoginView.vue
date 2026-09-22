@@ -8,15 +8,15 @@
       </div>
 
       <form class="login-form" @submit.prevent="onSubmit">
-        <label class="field">
+        <label class="form-row">
           <span class="field-label">用户名</span>
-          <input v-model.trim="username" type="text" autocomplete="username" placeholder="admin"
+          <input v-model.trim="username" class="form-control login-input" type="text" autocomplete="username" placeholder="admin"
                  :disabled="loading" required />
         </label>
 
-        <label class="field">
+        <label class="form-row">
           <span class="field-label">密码</span>
-          <input v-model="password" type="password" autocomplete="current-password"
+          <input v-model="password" class="form-control login-input" type="password" autocomplete="current-password"
                  placeholder="••••••••" :disabled="loading" required />
         </label>
 
@@ -125,7 +125,8 @@ async function onSubmit() {
   gap: 16px;
 }
 
-.field {
+/* 表单项:标签在上、控件在下 */
+.form-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -136,20 +137,10 @@ async function onSubmit() {
   color: var(--text-dim);
 }
 
-.field input {
+/* 登录页是主视觉,控件比全局尺寸略大 */
+.login-input {
   padding: 9px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: rgba(11, 15, 24, 0.7);
-  color: var(--text);
   font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.field input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(76, 141, 255, 0.18);
 }
 
 .login-submit {
